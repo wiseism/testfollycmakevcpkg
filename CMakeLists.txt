@@ -27,6 +27,9 @@ add_executable(folly_concurrent_hash_map_demo TestFolly/ConcurrentHashMap.cpp)
 # 实测其真实存在的家族成员 AtomicIntrusiveLinkedList
 add_executable(atomic_intrusive_linked_list_test TestFolly/AtomicIntrusiveLinkedListTest.cpp)
 
+# folly 并发 API 演示（对照 JUC/libcds，说明见 TestFolly/FollyConcurrency.md）
+add_executable(folly_concurrent_api_demo TestFolly/FollyConcurrencyDemo.cpp)
+
 
 #add_executable(FBStringBenchmark TestFolly/FBStringBenchmark.cpp)# TestFolly/FBStringBenchmark.cpp:81:10: fatal error: 'folly/test/FBStringTestBenchmarks.cpp.h' file not found
 #target_link_libraries(FBStringBenchmark PRIVATE folly::folly)
@@ -34,6 +37,7 @@ add_executable(atomic_intrusive_linked_list_test TestFolly/AtomicIntrusiveLinked
 
 target_link_libraries(folly_concurrent_hash_map_demo PRIVATE folly::folly)
 target_link_libraries(atomic_intrusive_linked_list_test PRIVATE folly::folly)
+target_link_libraries(folly_concurrent_api_demo PRIVATE folly::folly)
 #target_link_libraries(AtomicHashMapTest PRIVATE folly::folly)
 
 
