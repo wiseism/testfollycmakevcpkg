@@ -7,19 +7,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(mylibrary  mylibrary/MyClass.cpp mylibrary/MyClass.h)
 
-add_executable(testfollycmakevcpkg src/main.cpp)
+# 命名约定：folly_<组件>_demo = 演示程序；gtest_<主题>_test / <api>_test = 断言测试
+add_executable(folly_futures_uri_demo src/main.cpp)
 #add_executable(RpcClient RpcClient.cpp)
 #add_executable(RpcServer RpcServer.cpp)
 
-add_executable(gtestmethods test/gtestmain.cpp)
-add_executable(gtestpairTest test/gtestpair.cpp)
+add_executable(gtest_basics_test test/gtest_basics.cpp)
+add_executable(gtest_make_pair_test test/gtest_make_pair.cpp)
 
 
 find_package(folly CONFIG REQUIRED)
 if(NOT TARGET folly::folly AND TARGET Folly::folly)
     add_library(folly::folly ALIAS Folly::folly)
 endif()
-add_executable(TestConcurrentHashMap TestFolly/ConcurrentHashMap.cpp)
+add_executable(folly_concurrent_hash_map_demo TestFolly/ConcurrentHashMap.cpp)
 #add_executable(AtomicHashMapTest TestFolly/AtomicHashMapTest.cpp)# undefined reference
 
 # folly::AtomicIntrusiveHashMap 不存在于开源 folly（调查报告见 README.md 对应章节），
@@ -31,19 +32,19 @@ add_executable(atomic_intrusive_linked_list_test TestFolly/AtomicIntrusiveLinked
 #target_link_libraries(FBStringBenchmark PRIVATE folly::folly)
 
 
-target_link_libraries(TestConcurrentHashMap PRIVATE folly::folly)
+target_link_libraries(folly_concurrent_hash_map_demo PRIVATE folly::folly)
 target_link_libraries(atomic_intrusive_linked_list_test PRIVATE folly::folly)
 #target_link_libraries(AtomicHashMapTest PRIVATE folly::folly)
 
 
 
-target_link_libraries(testfollycmakevcpkg PRIVATE folly::folly)
-add_executable(f_a_list src/f_a_list.cpp)
-target_link_libraries(f_a_list PRIVATE folly::folly)
-add_executable(clh_example src/clh_example.cpp)
-target_link_libraries(clh_example PRIVATE folly::folly)
-add_executable(folly_d_mutex src/folly_d_mutex.cpp)
-target_link_libraries(folly_d_mutex PRIVATE folly::folly)
+target_link_libraries(folly_futures_uri_demo PRIVATE folly::folly)
+add_executable(folly_atomic_linked_list_demo src/folly_atomic_linked_list_demo.cpp)
+target_link_libraries(folly_atomic_linked_list_demo PRIVATE folly::folly)
+add_executable(folly_mpmc_queue_demo src/folly_mpmc_queue_demo.cpp)
+target_link_libraries(folly_mpmc_queue_demo PRIVATE folly::folly)
+add_executable(folly_distributed_mutex_demo src/folly_distributed_mutex_demo.cpp)
+target_link_libraries(folly_distributed_mutex_demo PRIVATE folly::folly)
 
 enable_testing()
 
@@ -51,12 +52,13 @@ find_package(GTest CONFIG REQUIRED)
 if(NOT TARGET gtest::gtest AND TARGET GTest::gtest)
     add_library(gtest::gtest ALIAS GTest::gtest)
 endif()
-# tests define their own main (do NOT add GTEST_API_ to it: it expands to dllimport on MSVC)
-target_link_libraries(gtestmethods PRIVATE GTest::gtest)
-target_link_libraries(gtestpairTest PRIVATE GTest::gtest)
+# 测试自带 main，绝不能写成 GTEST_API_ int main（该宏在 MSVC 共享 gtest 下展开为
+# dllimport，定义它直接 C2491 编译错误；GTEST_API_ 只属于 gtest 自己的 gtest_main.cc）
+target_link_libraries(gtest_basics_test PRIVATE GTest::gtest)
+target_link_libraries(gtest_make_pair_test PRIVATE GTest::gtest)
 
-add_test(AllTestsInMain gtestmethods)
-add_test(AllTestsInPair gtestpairTest)
+add_test(GtestBasics gtest_basics_test)
+add_test(GtestMakePair gtest_make_pair_test)
 add_test(AtomicIntrusiveLinkedList atomic_intrusive_linked_list_test)
 
 

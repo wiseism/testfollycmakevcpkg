@@ -240,7 +240,7 @@ add_executable()
 enable_testing()
 
 find_package(GTest CONFIG REQUIRED)
-target_link_libraries(gtestmethods PRIVATE GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
+target_link_libraries(gtest_basics_test PRIVATE GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
 
 源代码：
 ```c++
