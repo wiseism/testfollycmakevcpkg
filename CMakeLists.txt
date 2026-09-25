@@ -38,6 +38,44 @@ add_executable(folly_concurrent_api_demo TestFolly/FollyConcurrencyDemo.cpp)
 target_link_libraries(folly_concurrent_hash_map_demo PRIVATE folly::folly)
 target_link_libraries(atomic_intrusive_linked_list_test PRIVATE folly::folly)
 target_link_libraries(folly_concurrent_api_demo PRIVATE folly::folly)
+
+# 特性探测：folly::atomic_shared_ptr（演示第 6 节）。conan 的旧版 folly 里
+# AtomicSharedPtr-detail.h 是 libstdc++ 专用实现（无条件引用 std::__shared_count
+# 等 GCC 内部符号），MSVC 下 include 即报错；folly 2025.03 起才有
+# #if defined(__GLIBCXX__) 守卫 + 可移植回退。直接读头文件判断有无守卫。
+set(_folly_asp_ok OFF)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU") # libstdc++ 提供那些内部符号，旧版也能编
+    set(_folly_asp_ok ON)
+else()
+    # include 目录可能挂在不同目标上（vcpkg: Folly::folly_deps；conan: folly::folly）
+    set(_asp_candidates "")
+    if(DEFINED VCPKG_INSTALLED_DIR)
+        list(APPEND _asp_candidates "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include")
+    endif()
+    foreach(_t folly::folly Folly::folly Folly::folly_deps folly::folly_deps)
+        if(TARGET ${_t})
+            get_target_property(_inc ${_t} INTERFACE_INCLUDE_DIRECTORIES)
+            if(_inc)
+                list(APPEND _asp_candidates ${_inc})
+            endif()
+        endif()
+    endforeach()
+    foreach(_d ${_asp_candidates})
+        string(REGEX REPLACE "\\$<BUILD_INTERFACE:([^>]+)>" "\\1" _d "${_d}") # 剥 genex
+        set(_asp_h "${_d}/folly/concurrency/detail/AtomicSharedPtr-detail.h")
+        if(EXISTS "${_asp_h}")
+            file(READ "${_asp_h}" _asp_src)
+            if(_asp_src MATCHES "__GLIBCXX__")
+                set(_folly_asp_ok ON)
+            endif()
+            break()
+        endif()
+    endforeach()
+endif()
+if(NOT _folly_asp_ok)
+    message(STATUS "folly::atomic_shared_ptr not usable with this folly/compiler: skipping demo section 6")
+    target_compile_definitions(folly_concurrent_api_demo PRIVATE DEMO_NO_ATOMIC_SHARED_PTR)
+endif()
 #target_link_libraries(AtomicHashMapTest PRIVATE folly::folly)
 
 

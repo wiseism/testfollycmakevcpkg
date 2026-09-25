@@ -20,7 +20,7 @@ C++（并且做得更细，提供 RCU/HP 等多种内存回收策略）。但 fo
 | `ExecutorService` | ——（自管线程） | `folly::CPUThreadPoolExecutor` | `folly/executors/CPUThreadPoolExecutor.h` | 还有 `IOThreadPoolExecutor`、`UnboundedThreadPoolExecutor` |
 | `CompletableFuture` / `allOf` | futurelib 风格（folly 自带） | `folly::Future` + `futures::collectAll` | `folly/futures/Future.h` | `collectAll` 返回 `Try` 向量，单个失败不拖垮整体（≈ allOf+handle 组合） |
 | `CyclicBarrier` | —— | `folly::futures::Barrier` | `folly/futures/Barrier.h` | 面向 future 等待值就绪，语义近似 |
-| `AtomicReference<Config>` | `cds::atomics` + RCU `TPFuchs` | `folly::atomic_shared_ptr` | `folly/concurrency/AtomicSharedPtr.h` | 读侧无锁 + 快照一致性，RCU 式发布/订阅 |
+| `AtomicReference<Config>` | `cds::atomics` + RCU `TPFuchs` | `folly::atomic_shared_ptr` | `folly/concurrency/AtomicSharedPtr.h` | 读侧无锁 + 快照一致性，RCU 式发布/订阅。⚠️ 版本坑：旧版 folly（conan 那套）此头是 libstdc++ 专用实现（无守卫直用 `std::__shared_count` 等 GCC 内部符号），MSVC 下必炸；2025.03 起才有 `#if defined(__GLIBCXX__)` + 可移植回退。CMakeLists 里做了特性探测，不可用时演示第 6 节自动 SKIP |
 | ——（GC 白送的安全发布） | HP/Guarded/EBR 全家桶 | `folly::hazptr` / `EpochReclaimer` | `folly/concurrency/HazptrTS.h`、`folly/concurrency/EpochReclaimer.h` | 这是 libcds 与 folly 共同面对、而 JUC 靠 GC 回避的问题 |
 | `ReentrantLock`/`LockSupport` | `sync::SpinLock` 等 | `folly::DistributedMutex` | `folly/synchronization/DistributedMutex.h` | 无等待自旋锁，配合 `std::unique_lock` 用（见 `folly_distributed_mutex_demo`） |
 | `ReadWriteLock`/`StampedLock` | `sync::RGlock`（读聚合） | `folly::SharedMutex`、`RWSpinLock` | `folly/synchronization/SharedMutex.h` 等 | folly 的锁基本是 boost 移植（`Synchronization.h` 系） |

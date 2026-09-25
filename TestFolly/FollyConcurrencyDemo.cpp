@@ -17,7 +17,9 @@
 
 #include <folly/MPMCQueue.h>
 #include <folly/Synchronized.h>
+#ifndef DEMO_NO_ATOMIC_SHARED_PTR // 由 CMake 特性探测定义，见 CMakeLists.txt
 #include <folly/concurrency/AtomicSharedPtr.h>
+#endif
 #include <folly/concurrency/ConcurrentHashMap.h>
 #include <folly/executors/CPUThreadPoolExecutor.h>
 #include <folly/futures/Future.h>
@@ -32,6 +34,9 @@
 
 static int g_pass = 0;
 static int g_fail = 0;
+#ifdef CHECK // folly 经 glog 传递引入了自己的 CHECK，先解除避免 C4005
+#undef CHECK
+#endif
 #define CHECK(cond)                                           \
   do {                                                        \
     if (cond) {                                               \
@@ -106,20 +111,23 @@ void test_concurrent_hash_map() {
 // JUC:    ArrayBlockingQueue / LinkedBlockingQueue
 // libcds: fs::LifoQueue / VSQueue（但 read 默认自旋，需 backoff）
 // ---------------------------------------------------------------------------
+// 注：kConsumers 放文件作用域，旧工具集（MSVC 14.38）对函数内 constexpr 变量
+// 在 lambda 中的"非 odr-use 免捕获"规则实现有 bug（C3491），14.43 才正常
+constexpr int kMpmcConsumers = 2;
+
 void test_mpmc_blocking_queue() {
   folly::MPMCQueue<int> q(64); // 容量固定，≈ ArrayBlockingQueue
   // 实测坑：本版本 folly 里 write()/read() 是【非阻塞】的（满/空直接返回
   // false，元素会被悄悄丢掉），阻塞语义要用 blockingWrite()/blockingRead()
   std::atomic<int> consumedSum{0};
-  constexpr int kConsumers = 2;
 
   std::thread producer([&q] {
     for (int i = 1; i <= 100; ++i) q.blockingWrite(i); // 满了就阻塞
-    for (int c = 0; c < kConsumers; ++c)
+    for (int c = 0; c < kMpmcConsumers; ++c)
       q.blockingWrite(-1); // 每个消费者一个哨兵
   });
   std::vector<std::thread> consumers;
-  for (int c = 0; c < kConsumers; ++c) {
+  for (int c = 0; c < kMpmcConsumers; ++c) {
     consumers.emplace_back([&q, &consumedSum] {
       int v;
       for (;;) {
@@ -165,7 +173,12 @@ void test_synchronized() {
 // 6. atomic_shared_ptr：读侧无锁、写侧不阻塞读（RCU 式发布/订阅）
 // JUC:    AtomicReference<Config> ref
 // libcds: cds::TPFuchs 或 RCU 类型族
+// 实测坑：conan 里那套旧版 folly（boost 1.85/fmt 10.2）的 AtomicSharedPtr-detail.h
+// 是 libstdc++ 专用实现，无条件用 std::__shared_count / std::_Sp_counted_base，
+// MSVC 下必炸（C2039）；2025.03（vcpkg）才加了 #if defined(__GLIBCXX__) + 可移植
+// 回退。CMake 探测到头文件无守卫时定义 DEMO_NO_ATOMIC_SHARED_PTR，本节整体跳过。
 // ---------------------------------------------------------------------------
+#ifndef DEMO_NO_ATOMIC_SHARED_PTR
 struct Config {
   int version;
   std::string name;
@@ -194,6 +207,7 @@ void test_atomic_shared_ptr() {
   CHECK(config.load()->version == 3);
   CHECK(reads.load() > 0);
 }
+#endif // DEMO_NO_ATOMIC_SHARED_PTR
 
 int main() {
   std::cout << "== folly 并发 API 演示（对照 JUC / libcds）==\n";
@@ -201,7 +215,11 @@ int main() {
   test_concurrent_hash_map();
   test_mpmc_blocking_queue();
   test_synchronized();
+#ifdef DEMO_NO_ATOMIC_SHARED_PTR
+  std::cout << "SKIP 第6节 atomic_shared_ptr：当前 folly 版本的该头是 libstdc++ 专用，MSVC 编不了\n";
+#else
   test_atomic_shared_ptr();
+#endif
   std::cout << "pass=" << g_pass << " fail=" << g_fail << "\n";
   return g_fail == 0 ? 0 : 1;
 }
