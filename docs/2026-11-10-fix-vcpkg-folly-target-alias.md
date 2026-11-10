@@ -32,3 +32,9 @@ endif()
 从 vcpkg 输出确认新 port 导出的 CMake 目标为 `Folly::folly`（注：903 个 target）与
 `GTest::gtest`。将 CMakeLists 中所有 `folly::folly`→`Folly::folly`、`gtest::gtest`→`GTest::gtest`，
 并移除上一轮加入的临时 alias 补丁。
+
+
+## 四次修正
+
+vcpkg 缓存命中后编译推进到项目源码：`src/f_a_list.cpp:55` 裸用 `AtomicLinkedList`（folly 新版不再
+泄漏到全局作用域，且其为模板类），改为 `folly::AtomicLinkedList<int> a;`（该变量未使用，仅示例代码）。
