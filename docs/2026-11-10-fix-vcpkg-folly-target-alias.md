@@ -25,3 +25,10 @@ if(NOT TARGET folly::folly AND TARGET folly)
   add_library(folly::folly ALIAS folly)
 endif()
 ```
+
+
+## 三次修正
+
+从 vcpkg 输出确认新 port 导出的 CMake 目标为 `Folly::folly`（注：903 个 target）与
+`GTest::gtest`。将 CMakeLists 中所有 `folly::folly`→`Folly::folly`、`gtest::gtest`→`GTest::gtest`，
+并移除上一轮加入的临时 alias 补丁。
