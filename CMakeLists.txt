@@ -16,6 +16,9 @@ add_executable(gtestpairTest test/gtestpair.cpp)
 
 
 find_package(folly CONFIG REQUIRED)
+if(NOT TARGET folly::folly AND TARGET folly)
+  add_library(folly::folly ALIAS folly)
+endif()
 add_executable(TestConcurrentHashMap TestFolly/ConcurrentHashMap.cpp)
 #add_executable(AtomicHashMapTest TestFolly/AtomicHashMapTest.cpp)# undefined reference
 
