@@ -29,9 +29,8 @@ jobs:
       run: |
         sudo apt update
         sudo apt install linux-libc-dev autoconf-archive -y
-        git clone https://github.com/microsoft/vcpkg.git
+        git clone --depth 1 --branch 2026.10.16 https://github.com/microsoft/vcpkg.git
         cd vcpkg
-        git checkout 2023.12.12
         chmod +x ./bootstrap-vcpkg.sh
         ./bootstrap-vcpkg.sh
         ./vcpkg integrate install
