@@ -38,3 +38,8 @@ endif()
 
 vcpkg 缓存命中后编译推进到项目源码：`src/f_a_list.cpp:55` 裸用 `AtomicLinkedList`（folly 新版不再
 泄漏到全局作用域，且其为模板类），改为 `folly::AtomicLinkedList<int> a;`（该变量未使用，仅示例代码）。
+
+## 验证记录
+| Run | 结果 |
+|---|---|
+| 42844406776 | ✅ success |
